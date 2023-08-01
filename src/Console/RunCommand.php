@@ -84,8 +84,14 @@ class RunCommand extends SymfonyCommand
             }
         }
 
+        if (! $thisCode) {
+            foreach ($container->getSuccessCallbacks() as $callback) {
+                call_user_func($callback);
+            }
+        }
+
         foreach ($container->getFinishedCallbacks() as $callback) {
-            call_user_func($callback);
+            call_user_func($callback, $exitCode);
         }
 
         return $exitCode;
@@ -123,6 +129,10 @@ class RunCommand extends SymfonyCommand
 
         if ($confirm && ! $this->confirmTaskWithUser($task, $confirm)) {
             return;
+        }
+
+        foreach ($container->getBeforeCallbacks() as $callback) {
+            call_user_func($callback, $task);
         }
 
         if (($exitCode = $this->runTaskOverSSH($container->getTask($task, $macroOptions))) > 0) {
@@ -178,27 +188,23 @@ class RunCommand extends SymfonyCommand
     /**
      * Display the given output line.
      *
-     * @param  int  $type
+     * @param  string  $type
      * @param  string  $host
      * @param  string  $line
      * @return void
      */
     protected function displayOutput($type, $host, $line)
     {
-        $lines = explode("\n", $line);
+        $lines = array_filter(array_map('trim', explode("\n", $line)));
 
         $hostColor = $this->getHostColor($host);
 
         foreach ($lines as $line) {
-            if (strlen(trim($line)) === 0) {
-                continue;
+            if ($type === Process::ERR) {
+                $line = '<fg=red>'.$line.'</>';
             }
 
-            if ($type == Process::OUT) {
-                $this->output->write($hostColor.': '.trim($line).PHP_EOL);
-            } else {
-                $this->output->write($hostColor.':  '.'<fg=red>'.trim($line).'</>'.PHP_EOL);
-            }
+            $this->output->write($hostColor.': '.$line.PHP_EOL);
         }
     }
 
@@ -209,11 +215,12 @@ class RunCommand extends SymfonyCommand
      */
     protected function loadTaskContainer()
     {
-        $path = $this->input->getOption('path');
+        $path = $this->input->getOption('path', '');
 
         $file = $this->input->getOption('conf');
+        $envoyFile = $path;
 
-        if (! file_exists($envoyFile = $path)
+        if (! file_exists($envoyFile ?? '')
             && ! file_exists($envoyFile = getcwd().'/'.$file)
             && ! file_exists($envoyFile .= '.blade.php')
         ) {
@@ -223,7 +230,9 @@ class RunCommand extends SymfonyCommand
         }
 
         with($container = new TaskContainer)->load(
-            $envoyFile, new Compiler, $this->getOptions()
+            $envoyFile,
+            new Compiler,
+            array_merge($this->getOptions(), ['__task' => $this->argument('task')])
         );
 
         return $container;
@@ -271,7 +280,10 @@ class RunCommand extends SymfonyCommand
                 $option[1] = true;
             }
 
-            $options[Str::camel($option[0])] = $option[1];
+            $optionKey = $option[0];
+
+            $options[Str::camel($optionKey)] = $option[1];
+            $options[Str::snake($optionKey)] = $option[1];
         }
 
         return $options;

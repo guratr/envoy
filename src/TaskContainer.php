@@ -38,11 +38,25 @@ class TaskContainer
     protected $tasks = [];
 
     /**
+     * All of the "success" callbacks.
+     *
+     * @var array
+     */
+    protected $success = [];
+
+    /**
      * All of the "error" callbacks.
      *
      * @var array
      */
     protected $error = [];
+
+    /**
+     * All of the "before" callbacks.
+     *
+     * @var array
+     */
+    protected $before = [];
 
     /**
      * All of the "after" callbacks.
@@ -399,7 +413,7 @@ class TaskContainer
      */
     public function endMacro()
     {
-        $macro = preg_split('/\n|\r\n?/', $this->trimSpaces(trim(ob_get_clean())));
+        $macro = array_map('trim', preg_split('/\n|\r\n?/', $this->trimSpaces(trim(ob_get_clean()))));
 
         $this->macros[array_pop($this->macroStack)] = $macro;
     }
@@ -448,6 +462,27 @@ class TaskContainer
     }
 
     /**
+     * Register a before-task callback.
+     *
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function before(Closure $callback)
+    {
+        $this->before[] = $callback;
+    }
+
+    /**
+     * Get all of the before-task callbacks.
+     *
+     * @return array
+     */
+    public function getBeforeCallbacks()
+    {
+        return $this->before;
+    }
+
+    /**
      * Register an after-task callback.
      *
      * @param  \Closure  $callback
@@ -487,6 +522,27 @@ class TaskContainer
     public function getFinishedCallbacks()
     {
         return $this->finished;
+    }
+
+    /**
+     * Register an success-task callback.
+     *
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function success(Closure $callback)
+    {
+        $this->success[] = $callback;
+    }
+
+    /**
+     * Get all of the success-task callbacks.
+     *
+     * @return array
+     */
+    public function getSuccessCallbacks()
+    {
+        return $this->success;
     }
 
     /**

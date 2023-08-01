@@ -36,15 +36,20 @@ class Compiler
         'MacroStop',
         'TaskStart',
         'TaskStop',
+        'Before',
+        'BeforeStop',
         'After',
         'AfterStop',
         'Finished',
         'FinishedStop',
+        'Success',
+        'SuccessStop',
         'Error',
         'ErrorStop',
         'Slack',
         'Discord',
         'Telegram',
+        'MicrosoftTeams',
     ];
 
     /**
@@ -332,6 +337,30 @@ class Compiler
     }
 
     /**
+     * Compile Envoy before statements into valid PHP.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function compileBefore($value)
+    {
+        $pattern = $this->createPlainMatcher('before');
+
+        return preg_replace($pattern, '$1<?php $_vars = get_defined_vars(); $__container->before(function($task) use ($_vars) { extract($_vars, EXTR_SKIP)  ; $2', $value);
+    }
+
+    /**
+     * Compile Envoy before stop statements into valid PHP.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function compileBeforeStop($value)
+    {
+        return preg_replace($this->createPlainMatcher('endbefore'), '$1}); ?>$2', $value);
+    }
+
+    /**
      * Compile Envoy after statements into valid PHP.
      *
      * @param  string  $value
@@ -365,7 +394,7 @@ class Compiler
     {
         $pattern = $this->createPlainMatcher('finished');
 
-        return preg_replace($pattern, '$1<?php $_vars = get_defined_vars(); $__container->finished(function() use ($_vars) { extract($_vars); $2', $value);
+        return preg_replace($pattern, '$1<?php $_vars = get_defined_vars(); $__container->finished(function($exitCode = null) use ($_vars) { extract($_vars); $2', $value);
     }
 
     /**
@@ -377,6 +406,30 @@ class Compiler
     protected function compileFinishedStop($value)
     {
         return preg_replace($this->createPlainMatcher('endfinished'), '$1}); ?>$2', $value);
+    }
+
+    /**
+     * Compile Envoy success statements into valid PHP.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function compileSuccess($value)
+    {
+        $pattern = $this->createPlainMatcher('success');
+
+        return preg_replace($pattern, '$1<?php $_vars = get_defined_vars(); $__container->success(function() use ($_vars) { extract($_vars); $2', $value);
+    }
+
+    /**
+     * Compile Envoy success stop statements into valid PHP.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function compileSuccessStop($value)
+    {
+        return preg_replace($this->createPlainMatcher('endsuccess'), '$1}); ?>$2', $value);
     }
 
     /**
@@ -440,6 +493,19 @@ class Compiler
         $pattern = $this->createMatcher('telegram');
 
         return preg_replace($pattern, '$1 if (! isset($task)) $task = null; Laravel\Envoy\Telegram::make$2->task($task)->send();', $value);
+    }
+
+    /**
+     * Compile Envoy Teams statements into valid PHP.
+     *
+     * @param  string  $value
+     * @return string
+     */
+    protected function compileMicrosoftTeams($value)
+    {
+        $pattern = $this->createMatcher('microsoftTeams');
+
+        return preg_replace($pattern, '$1 if (! isset($task)) $task = null; Laravel\Envoy\MicrosoftTeams::make$2->task($task)->send();', $value);
     }
 
     /**
