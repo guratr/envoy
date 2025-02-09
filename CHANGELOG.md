@@ -1,6 +1,8 @@
 # Release Notes
 
-## [Unreleased](https://github.com/laravel/envoy/compare/2.8.6.1...2.x)
+## [Unreleased](https://github.com/laravel/envoy/compare/2.9.1...2.x)
+
+## [2.9.1](https://github.com/laravel/envoy/compare/2.8.6.1...2.9.1) - 2025-02-09
 
 ## [2.8.6.1](https://github.com/laravel/envoy/compare/v2.8.6...2.8.6.1) - 2023-08-01
 
